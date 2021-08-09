@@ -1,0 +1,101 @@
+{#include base}
+{#title}Quarkus Codebase Report{/title}
+{#content}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.0/dist/chart.min.js"></script>
+
+<h2>Java Source Files and Types</h2>
+<canvas id="chart-java-source-files"></canvas>
+<script>
+    const javaSourceCtx = document.getElementById('chart-java-source-files').getContext('2d');
+    const javaSourceLabels = [{#each results}'{it.tagName}', {/each}];
+    const javaSourceDatasets = {
+        labels: javaSourceLabels,
+        datasets: [
+            {
+                label: '# of java source files',
+                data: [{#each results}{it.javaSourceFiles}, {/each}],
+                backgroundColor: "#0047AB",
+            },
+            {
+                label: '# of java types',
+                data: [{#each results}{it.javaTypes}, {/each}],
+                backgroundColor: "#DE3163",
+            },
+        ]
+    };
+
+    const javaSourceChart = new Chart(javaSourceCtx, {
+        type: 'bar',
+        data: javaSourceDatasets,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    stacked: true
+                },
+                x: {
+                    stacked: true
+                }
+            }
+        }
+    });
+</script>
+
+<h2>Build Items</h2>
+<canvas id="chart-build-items"></canvas>
+<script>
+    const buildItemsCtx = document.getElementById('chart-build-items').getContext('2d');
+    const buildItemsLabels = [{#each results}'{it.tagName}', {/each}];
+    const buildItemsData = [{#each results}{it.buildItems}, {/each}];
+    const buildItemsChart = new Chart(buildItemsCtx, {
+        type: 'bar',
+        data: {
+            labels: buildItemsLabels,
+            datasets: [{
+                label: '# of build items',
+                data: buildItemsData,
+                backgroundColor: "#0047AB",
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
+</script>
+
+<h2>Config Items</h2>
+<canvas id="chart-config-items"></canvas>
+<script>
+    const configItemsCtx = document.getElementById('chart-config-items').getContext('2d');
+    const configItemsLabels = [{#each results}'{it.tagName}', {/each}];
+    const configItemsData = [{#each results}{it.configItems}, {/each}];
+    const configItemsChart = new Chart(configItemsCtx, {
+        type: 'bar',
+        data: {
+            labels: configItemsLabels,
+            datasets: [{
+                label: '# of config items',
+                data: configItemsData,
+                backgroundColor: "#DE3163",
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
+</script>
+
+{/content}
+{/include}
