@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,6 +52,11 @@ import picocli.CommandLine.Option;
 public class Analyze implements Runnable {
 
     private static final Logger LOG = Logger.getLogger(Analyze.class);
+
+    private static Set<String> oldBuildItemNames = Set.of("org.jboss.builder.item.SimpleBuildItem",
+            "org.jboss.builder.item.MultiBuildItem");
+    private static Set<String> newBuildItemNames = Set.of("io.quarkus.builder.item.SimpleBuildItem",
+            "io.quarkus.builder.item.MultiBuildItem", "io.quarkus.builder.item.EmptyBuildItem");
 
     @Option(names = { "-c",
             "--clear" }, description = "Clear the working dir and clone the repo")
@@ -166,20 +170,6 @@ public class Analyze implements Runnable {
         List<String> buildItems = new ArrayList<>();
         List<String> configItems = new ArrayList<>();
 
-        // We need to consider both old and new Build items API packages
-        String oldPackage = "org.jboss.builder.item.";
-        String newPackage = "io.quarkus.builder.item.";
-        String simpleBuildItem = "SimpleBuildItem";
-        String multiBuildItem = "MultiBuildItem";
-        String emptyBuildItem = "EmptyBuildItem";
-        Set<String> oldNames = new HashSet<>();
-        oldNames.add(oldPackage + simpleBuildItem);
-        oldNames.add(oldPackage + multiBuildItem);
-        Set<String> newNames = new HashSet<>();
-        newNames.add(newPackage + simpleBuildItem);
-        newNames.add(newPackage + multiBuildItem);
-        newNames.add(newPackage + emptyBuildItem);
-
         javaSources = Files
                 .find(workDir, Integer.MAX_VALUE, (path, attrs) -> {
                     if (attrs.isRegularFile()) {
@@ -221,7 +211,7 @@ public class Analyze implements Runnable {
                                     fqcn = getFullyQualifiedName(e);
                                 }
                                 return fqcn != null
-                                        && (oldNames.contains(fqcn) || newNames.contains(fqcn));
+                                        && (oldBuildItemNames.contains(fqcn) || newBuildItemNames.contains(fqcn));
                             });
                         })
                         .filter(not(ClassOrInterfaceDeclaration::isLocalClassDeclaration))

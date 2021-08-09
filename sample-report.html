@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <title>Quarkus Codebase Report</title>
+<style>
+body {
+    font-family: 'Open Sans', Arial, sans-serif;
+}
+pre {
+    background-color:#2E3436;
+    color:white;
+    border: 1px solid #4695EB;
+}
+pre code {
+    font-size:120%;
+}
+code {
+    padding: 0.4em;
+    font-family: monospace;
+}
+.badges {
+    margin-bottom: 1em;
+}
+h1, h2, h3 {
+    margin-top: 0.5em;
+}
+.label-badge {
+    font-size: 50%;
+}
+h2 {
+    font-size: 1.5rem;
+}
+h3 {
+    font-size: 1.3rem;
+}
+.jumbotron {
+    padding: 2rem;
+}
+</style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1>Quarkus Codebase Report</h1>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.0/dist/chart.min.js"></script>
+
+<h2>Java Source Files and Types</h2>
+<canvas id="chart-java-source-files"></canvas>
+<script>
+    const javaSourceCtx = document.getElementById('chart-java-source-files').getContext('2d');
+    const javaSourceLabels = ['0.0.1', '0.1.0', '0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.9.1', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.13.1', '0.13.2', '0.13.3', '0.14.0', '0.15.0', '0.16.0', '0.16.1', '0.17.0', '0.18.0', '0.19.0', '0.19.1', '0.20.0', '0.21.0', '0.21.1', '0.21.2', '0.22.0', '0.23.0', '0.23.1', '0.23.2', '0.24.0', '0.25.0', '0.26.0', '0.26.1', '0.27.0', '0.28.0', '0.28.1', '1.0.0.CR1', '1.0.0.CR2', '1.0.0.Final', '1.0.1.Final', '1.1.0.CR1', '1.1.0.Final', '1.1.1.Final', '1.2.0.CR1', '1.2.0.Final', '1.2.1.Final', '1.3.0.Alpha1', '1.3.0.Alpha2', '1.3.0.CR1', '1.3.0.CR2', '1.3.0.Final', '1.3.1.Final', '1.3.2.Final', '1.3.3.Final', '1.3.4.Final', '1.4.0.CR1', '1.4.0.Final', '1.4.1.Final', '1.4.2.Final', '1.5.0.CR1', '1.5.0.Final', '1.5.1.Final', '1.5.2.Final', '1.6.0.CR1', '1.6.0.Final', '1.6.1.Final', '1.7.0.CR1', '1.7.0.CR2', '1.7.0.Final', '1.7.1.Final', '1.7.2.Final', '1.7.3.Final', '1.7.4.Final', '1.7.5.Final', '1.7.6.Final', '1.8.0.CR1', '1.8.0.Final', '1.8.1.Final', '1.8.2.Final', '1.8.3.Final', '1.9.0.CR1', '1.9.0.Final', '1.9.1.Final', '1.9.2.Final', '1.10.0.CR1', '1.10.0.Final', '1.10.1.Final', '1.10.2.Final', '1.10.3.Final', '1.10.4.Final', '1.10.5.Final', '1.11.0.Beta1', '1.11.0.Beta2', '1.11.0.CR1', '1.11.0.Final', '1.11.1.Final', '1.11.2.Final', '1.11.3.Final', '1.11.4.Final', '1.11.5.Final', '1.11.6.Final', '1.11.7.Final', '1.12.0.CR1', '1.12.0.Final', '1.12.1.Final', '1.12.2.Final', '1.13.0.CR1', '1.13.0.Final', '1.13.1.Final', '1.13.2.Final', '1.13.3.Final', '1.13.4.Final', '1.13.5.Final', '1.13.6.Final', '1.13.7.Final', '2.0.0.Alpha1', '2.0.0.Alpha2', '2.0.0.Alpha3', '2.0.0.CR1', '2.0.0.CR2', '2.0.0.CR3', '2.0.0.Final', '2.0.1.Final', '2.0.2.Final', '2.0.3.Final', '2.1.0.CR1', '2.1.0.Final', '2.1.1.Final', ];
+    const javaSourceDatasets = {
+        labels: javaSourceLabels,
+        datasets: [
+            {
+                label: '# of java source files',
+                data: [894, 882, 930, 964, 972, 964, 988, 1047, 1220, 1314, 1314, 1377, 1280, 1371, 1489, 1494, 1491, 1494, 1562, 1667, 1805, 1805, 1915, 1922, 2020, 2020, 2039, 2097, 2097, 2099, 2153, 2410, 2410, 2414, 2613, 2678, 2775, 2775, 2921, 2939, 2938, 2939, 2977, 2984, 2984, 3357, 3375, 3390, 3596, 3641, 3648, 3724, 3858, 4150, 4202, 4236, 4268, 4300, 4303, 4308, 4690, 4733, 4737, 4765, 5327, 5383, 5404, 5410, 5657, 5681, 5715, 6171, 6180, 6195, 6228, 6244, 6248, 6248, 6248, 6263, 6501, 6519, 6541, 6547, 6555, 6793, 6806, 6819, 6819, 7046, 7052, 7065, 7071, 7092, 7095, 7095, 7969, 8031, 8242, 8267, 8310, 8352, 8355, 8397, 8397, 8397, 8401, 8491, 8548, 8604, 8612, 8981, 9036, 9073, 9103, 9119, 9133, 9154, 9155, 9155, 9430, 9490, 9648, 9674, 9714, 9739, 9838, 9891, 9916, 9928, 10202, 10278, 10309, ],
+                backgroundColor: "#0047AB",
+            },
+            {
+                label: '# of java types',
+                data: [1218, 1209, 1272, 1312, 1324, 1312, 1345, 1439, 1662, 1767, 1767, 1857, 1693, 1825, 1955, 1959, 1956, 1959, 2045, 2183, 2397, 2397, 2542, 2551, 2720, 2720, 2750, 2821, 2821, 2823, 2879, 3201, 3201, 3210, 3483, 3576, 3677, 3677, 3879, 3905, 3904, 3905, 3946, 3958, 3958, 4427, 4449, 4465, 4744, 4809, 4818, 4964, 5141, 5493, 5550, 5584, 5621, 5655, 5660, 5665, 6162, 6228, 6233, 6273, 6973, 7039, 7068, 7076, 7412, 7439, 7477, 8037, 8048, 8069, 8110, 8129, 8133, 8133, 8133, 8151, 8417, 8438, 8464, 8472, 8481, 8797, 8812, 8825, 8825, 9095, 9102, 9124, 9131, 9154, 9170, 9170, 10219, 10296, 10542, 10583, 10633, 10689, 10691, 10746, 10746, 10746, 10757, 10893, 10959, 11037, 11055, 11561, 11644, 11689, 11727, 11750, 11783, 11815, 11817, 11818, 12191, 12279, 12516, 12556, 12599, 12634, 12770, 12833, 12884, 12904, 13250, 13348, 13400, ],
+                backgroundColor: "#DE3163",
+            },
+        ]
+    };
+
+    const javaSourceChart = new Chart(javaSourceCtx, {
+        type: 'bar',
+        data: javaSourceDatasets,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    stacked: true
+                },
+                x: {
+                    stacked: true
+                }
+            }
+        }
+    });
+</script>
+
+<h2>Build Items</h2>
+<canvas id="chart-build-items"></canvas>
+<script>
+    const buildItemsCtx = document.getElementById('chart-build-items').getContext('2d');
+    const buildItemsLabels = ['0.0.1', '0.1.0', '0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.9.1', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.13.1', '0.13.2', '0.13.3', '0.14.0', '0.15.0', '0.16.0', '0.16.1', '0.17.0', '0.18.0', '0.19.0', '0.19.1', '0.20.0', '0.21.0', '0.21.1', '0.21.2', '0.22.0', '0.23.0', '0.23.1', '0.23.2', '0.24.0', '0.25.0', '0.26.0', '0.26.1', '0.27.0', '0.28.0', '0.28.1', '1.0.0.CR1', '1.0.0.CR2', '1.0.0.Final', '1.0.1.Final', '1.1.0.CR1', '1.1.0.Final', '1.1.1.Final', '1.2.0.CR1', '1.2.0.Final', '1.2.1.Final', '1.3.0.Alpha1', '1.3.0.Alpha2', '1.3.0.CR1', '1.3.0.CR2', '1.3.0.Final', '1.3.1.Final', '1.3.2.Final', '1.3.3.Final', '1.3.4.Final', '1.4.0.CR1', '1.4.0.Final', '1.4.1.Final', '1.4.2.Final', '1.5.0.CR1', '1.5.0.Final', '1.5.1.Final', '1.5.2.Final', '1.6.0.CR1', '1.6.0.Final', '1.6.1.Final', '1.7.0.CR1', '1.7.0.CR2', '1.7.0.Final', '1.7.1.Final', '1.7.2.Final', '1.7.3.Final', '1.7.4.Final', '1.7.5.Final', '1.7.6.Final', '1.8.0.CR1', '1.8.0.Final', '1.8.1.Final', '1.8.2.Final', '1.8.3.Final', '1.9.0.CR1', '1.9.0.Final', '1.9.1.Final', '1.9.2.Final', '1.10.0.CR1', '1.10.0.Final', '1.10.1.Final', '1.10.2.Final', '1.10.3.Final', '1.10.4.Final', '1.10.5.Final', '1.11.0.Beta1', '1.11.0.Beta2', '1.11.0.CR1', '1.11.0.Final', '1.11.1.Final', '1.11.2.Final', '1.11.3.Final', '1.11.4.Final', '1.11.5.Final', '1.11.6.Final', '1.11.7.Final', '1.12.0.CR1', '1.12.0.Final', '1.12.1.Final', '1.12.2.Final', '1.13.0.CR1', '1.13.0.Final', '1.13.1.Final', '1.13.2.Final', '1.13.3.Final', '1.13.4.Final', '1.13.5.Final', '1.13.6.Final', '1.13.7.Final', '2.0.0.Alpha1', '2.0.0.Alpha2', '2.0.0.Alpha3', '2.0.0.CR1', '2.0.0.CR2', '2.0.0.CR3', '2.0.0.Final', '2.0.1.Final', '2.0.2.Final', '2.0.3.Final', '2.1.0.CR1', '2.1.0.Final', '2.1.1.Final', ];
+    const buildItemsData = [60, 60, 61, 61, 61, 61, 65, 67, 80, 91, 91, 98, 97, 107, 119, 119, 120, 120, 120, 128, 133, 133, 135, 135, 141, 141, 146, 150, 150, 150, 151, 169, 169, 169, 173, 177, 185, 185, 203, 203, 203, 203, 205, 205, 205, 231, 232, 234, 238, 237, 237, 240, 232, 248, 248, 249, 249, 253, 253, 253, 261, 262, 262, 262, 278, 278, 278, 279, 294, 295, 298, 304, 304, 304, 305, 305, 305, 305, 305, 305, 311, 311, 311, 311, 311, 316, 316, 316, 316, 327, 327, 327, 327, 327, 327, 327, 353, 354, 363, 364, 367, 367, 367, 366, 366, 366, 366, 370, 372, 371, 371, 383, 386, 386, 387, 388, 390, 390, 391, 391, 397, 398, 405, 408, 409, 410, 409, 410, 410, 410, 418, 418, 419, ];
+    const buildItemsChart = new Chart(buildItemsCtx, {
+        type: 'bar',
+        data: {
+            labels: buildItemsLabels,
+            datasets: [{
+                label: '# of build items',
+                data: buildItemsData,
+                backgroundColor: "#0047AB",
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
+</script>
+
+<h2>Config Items</h2>
+<canvas id="chart-config-items"></canvas>
+<script>
+    const configItemsCtx = document.getElementById('chart-config-items').getContext('2d');
+    const configItemsLabels = ['0.0.1', '0.1.0', '0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.9.1', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.13.1', '0.13.2', '0.13.3', '0.14.0', '0.15.0', '0.16.0', '0.16.1', '0.17.0', '0.18.0', '0.19.0', '0.19.1', '0.20.0', '0.21.0', '0.21.1', '0.21.2', '0.22.0', '0.23.0', '0.23.1', '0.23.2', '0.24.0', '0.25.0', '0.26.0', '0.26.1', '0.27.0', '0.28.0', '0.28.1', '1.0.0.CR1', '1.0.0.CR2', '1.0.0.Final', '1.0.1.Final', '1.1.0.CR1', '1.1.0.Final', '1.1.1.Final', '1.2.0.CR1', '1.2.0.Final', '1.2.1.Final', '1.3.0.Alpha1', '1.3.0.Alpha2', '1.3.0.CR1', '1.3.0.CR2', '1.3.0.Final', '1.3.1.Final', '1.3.2.Final', '1.3.3.Final', '1.3.4.Final', '1.4.0.CR1', '1.4.0.Final', '1.4.1.Final', '1.4.2.Final', '1.5.0.CR1', '1.5.0.Final', '1.5.1.Final', '1.5.2.Final', '1.6.0.CR1', '1.6.0.Final', '1.6.1.Final', '1.7.0.CR1', '1.7.0.CR2', '1.7.0.Final', '1.7.1.Final', '1.7.2.Final', '1.7.3.Final', '1.7.4.Final', '1.7.5.Final', '1.7.6.Final', '1.8.0.CR1', '1.8.0.Final', '1.8.1.Final', '1.8.2.Final', '1.8.3.Final', '1.9.0.CR1', '1.9.0.Final', '1.9.1.Final', '1.9.2.Final', '1.10.0.CR1', '1.10.0.Final', '1.10.1.Final', '1.10.2.Final', '1.10.3.Final', '1.10.4.Final', '1.10.5.Final', '1.11.0.Beta1', '1.11.0.Beta2', '1.11.0.CR1', '1.11.0.Final', '1.11.1.Final', '1.11.2.Final', '1.11.3.Final', '1.11.4.Final', '1.11.5.Final', '1.11.6.Final', '1.11.7.Final', '1.12.0.CR1', '1.12.0.Final', '1.12.1.Final', '1.12.2.Final', '1.13.0.CR1', '1.13.0.Final', '1.13.1.Final', '1.13.2.Final', '1.13.3.Final', '1.13.4.Final', '1.13.5.Final', '1.13.6.Final', '1.13.7.Final', '2.0.0.Alpha1', '2.0.0.Alpha2', '2.0.0.Alpha3', '2.0.0.CR1', '2.0.0.CR2', '2.0.0.CR3', '2.0.0.Final', '2.0.1.Final', '2.0.2.Final', '2.0.3.Final', '2.1.0.CR1', '2.1.0.Final', '2.1.1.Final', ];
+    const configItemsData = [0, 0, 0, 0, 0, 0, 0, 0, 101, 122, 122, 163, 190, 197, 210, 211, 211, 211, 280, 319, 352, 352, 360, 360, 403, 403, 457, 463, 463, 469, 469, 555, 555, 555, 532, 541, 612, 612, 650, 650, 650, 650, 647, 647, 647, 718, 720, 720, 755, 761, 761, 765, 779, 1004, 1028, 1033, 1036, 1041, 1041, 1041, 1104, 1108, 1108, 1108, 1235, 1247, 1248, 1248, 1308, 1309, 1312, 1382, 1382, 1382, 1389, 1396, 1398, 1398, 1398, 1398, 1426, 1429, 1432, 1435, 1435, 1475, 1473, 1473, 1473, 1556, 1556, 1557, 1557, 1557, 1557, 1557, 1576, 1580, 1604, 1606, 1609, 1623, 1623, 1638, 1638, 1638, 1638, 1658, 1660, 1661, 1662, 1722, 1730, 1731, 1733, 1736, 1740, 1740, 1740, 1740, 1774, 1782, 1823, 1833, 1834, 1843, 1879, 1890, 1890, 1890, 1940, 1953, 1958, ];
+    const configItemsChart = new Chart(configItemsCtx, {
+        type: 'bar',
+        data: {
+            labels: configItemsLabels,
+            datasets: [{
+                label: '# of config items',
+                data: configItemsData,
+                backgroundColor: "#DE3163",
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
+</script>
+
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script>
+</body>
+</html>
