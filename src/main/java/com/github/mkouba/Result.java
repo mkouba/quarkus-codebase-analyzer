@@ -9,6 +9,8 @@ public class Result implements Comparable<Result> {
     private Ref tag;
     private long javaSourceFiles;
     private long javaTypes;
+    private long testSourceFiles;
+    private long testTypes;
     private long buildItems;
     private long configItems;
 
@@ -26,6 +28,10 @@ public class Result implements Comparable<Result> {
         return Repository.shortenRefName(tag.getName());
     }
 
+    public long getMainSourceFiles() {
+        return javaSourceFiles - testSourceFiles;
+    }
+    
     public long getJavaSourceFiles() {
         return javaSourceFiles;
     }
@@ -37,9 +43,29 @@ public class Result implements Comparable<Result> {
     public long getJavaTypes() {
         return javaTypes;
     }
+    
+    public long getMainTypes() {
+        return javaTypes - testTypes;
+    }
 
     public void setJavaTypes(long javaTypes) {
         this.javaTypes = javaTypes;
+    }
+    
+    public long getTestSourceFiles() {
+        return testSourceFiles;
+    }
+
+    public void setTestSourceFiles(long testSourceFiles) {
+        this.testSourceFiles = testSourceFiles;
+    }
+
+    public long getTestTypes() {
+        return testTypes;
+    }
+
+    public void setTestTypes(long testTypes) {
+        this.testTypes = testTypes;
     }
 
     public QuarkusVersion getVersion() {

@@ -74,6 +74,10 @@ public class Analyze implements Runnable {
     @Option(names = { "-w", "--work-dir" }, description = "Working directory")
     String workDirPath;
 
+    @Option(names = { "-d",
+            "--dump" }, description = "Dump the java sources found")
+    boolean dump = false;
+
     @Override
     public void run() {
         long start = System.nanoTime();
@@ -114,14 +118,14 @@ public class Analyze implements Runnable {
             List<String> tags = this.tags != null ? Arrays.asList(this.tags.split(",")) : Collections.emptyList();
 
             if (tags.isEmpty()) {
-                LOG.infof("Going to analyze tags: %s",
+                LOG.infof("Going to analyze %s tags: %s", foundTags.size(),
                         foundTags.stream().map(Ref::getName).map(Repository::shortenRefName).collect(Collectors.toList()));
                 for (Ref foundTag : foundTags) {
                     results.add(analyze(repoDir, git, foundTag));
                 }
             } else {
                 for (String tag : tags) {
-                    LOG.infof("Going to analyze tags: %s", tags);
+                    LOG.infof("Going to analyze %s tags: %s", tags.size(), tags);
                     Optional<Ref> foundTag = foundTags.stream()
                             .filter(ref -> Repository.shortenRefName(ref.getName()).equals(tag))
                             .findFirst();
@@ -145,7 +149,7 @@ public class Analyze implements Runnable {
             long total = System.nanoTime() - start;
             LOG.infof("Analysis finished in %s",
                     total < TimeUnit.MINUTES.toNanos(1) ? TimeUnit.NANOSECONDS.toSeconds(total) + " s"
-                            : TimeUnit.NANOSECONDS.toMinutes(total) + "min");
+                            : TimeUnit.NANOSECONDS.toMinutes(total) + " min");
 
         } catch (IOException | GitAPIException e) {
             throw new IllegalStateException(e);
@@ -165,8 +169,10 @@ public class Analyze implements Runnable {
 
         long analyzeStart = System.nanoTime();
         List<Path> javaSources;
+        List<Path> testJavaSources = new ArrayList<>();
         AtomicInteger foundFiles = new AtomicInteger();
         LongAdder javaTypes = new LongAdder();
+        LongAdder testJavaTypes = new LongAdder();
         List<String> buildItems = new ArrayList<>();
         List<String> configItems = new ArrayList<>();
 
@@ -188,6 +194,13 @@ public class Analyze implements Runnable {
         // Parse and analyze java sources
         for (Path javaSource : javaSources) {
             try {
+                String fileName = javaSource.toString();
+                boolean isTest = fileName.contains("test/java") || fileName.contains("test\\java")
+                        || fileName.contains("integration-tests");
+                if (isTest) {
+                    testJavaSources.add(javaSource);
+                }
+
                 CompilationUnit unit = StaticJavaParser.parse(javaSource.toFile());
 
                 Map<String, String> imports = new HashMap<>();
@@ -195,7 +208,11 @@ public class Analyze implements Runnable {
                 unit.getImports().stream().forEach(i -> imports.put(i.getName().getIdentifier(), i.getNameAsString()));
 
                 // Java types
-                javaTypes.add(unit.findAll(TypeDeclaration.class).stream().count());
+                long typesFound = unit.findAll(TypeDeclaration.class).stream().count();
+                javaTypes.add(typesFound);
+                if (isTest) {
+                    testJavaTypes.add(typesFound);
+                }
 
                 // Collect build items - a build item must be final and extend one of the abstract classes
                 unit.findAll(ClassOrInterfaceDeclaration.class).stream()
@@ -260,6 +277,8 @@ public class Analyze implements Runnable {
         result.setConfigItems(configItems.size());
         result.setJavaSourceFiles(javaSources.size());
         result.setJavaTypes(javaTypes.sum());
+        result.setTestSourceFiles(testJavaSources.size());
+        result.setTestTypes(testJavaTypes.sum());
 
         LOG.infof(
                 "%s analyzed in %s s:\n\t- %s files\n\t- %s java source files\n\t- %s java types\n\t- %s build items\n\t- %s config items",
@@ -270,6 +289,16 @@ public class Analyze implements Runnable {
                 javaTypes.sum(),
                 buildItems.size(),
                 configItems.size());
+
+        if (dump) {
+            LOG.infof("Java sources found:\n- %s", javaSources.stream().map(p -> {
+                String str = p.toString();
+                if (testJavaSources.contains(p)) {
+                    str += " [TEST]";
+                }
+                return str;
+            }).collect(Collectors.joining("\n- ")));
+        }
 
         return result;
     }

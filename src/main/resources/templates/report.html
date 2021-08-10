@@ -3,7 +3,7 @@
 {#content}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.0/dist/chart.min.js"></script>
 
-<h2>Java Source Files and Types</h2>
+<h2>Java Source Files</h2>
 <canvas id="chart-java-source-files"></canvas>
 <script>
     const javaSourceCtx = document.getElementById('chart-java-source-files').getContext('2d');
@@ -13,13 +13,13 @@
         datasets: [
             {
                 label: '# of java source files',
-                data: [{#each results}{it.javaSourceFiles}, {/each}],
+                data: [{#each results}{it.mainSourceFiles}, {/each}],
                 backgroundColor: "#0047AB",
             },
             {
-                label: '# of java types',
-                data: [{#each results}{it.javaTypes}, {/each}],
-                backgroundColor: "#DE3163",
+                label: '# of test java source files',
+                data: [{#each results}{it.testSourceFiles}, {/each}],
+                backgroundColor: "#003153",
             },
         ]
     };
@@ -27,6 +27,44 @@
     const javaSourceChart = new Chart(javaSourceCtx, {
         type: 'bar',
         data: javaSourceDatasets,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    stacked: true
+                },
+                x: {
+                    stacked: true
+                }
+            }
+        }
+    });
+</script>
+
+<h2>Java Types</h2>
+<canvas id="chart-java-types"></canvas>
+<script>
+    const javaTypesCtx = document.getElementById('chart-java-types').getContext('2d');
+    const javaTypesLabels = [{#each results}'{it.tagName}', {/each}];
+    const javaTypesDatasets = {
+        labels: javaTypesLabels,
+        datasets: [
+            {
+                label: '# of java types',
+                data: [{#each results}{it.mainTypes}, {/each}],
+                backgroundColor: "#2A8000",
+            },
+            {
+                label: '# of test java types',
+                data: [{#each results}{it.testTypes}, {/each}],
+                backgroundColor: "#419C69",
+            },
+        ]
+    };
+
+    const javaTypesChart = new Chart(javaTypesCtx, {
+        type: 'bar',
+        data: javaTypesDatasets,
         options: {
             responsive: true,
             scales: {
