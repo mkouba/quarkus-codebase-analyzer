@@ -93,8 +93,6 @@
         </plugins>
     </build>
     <profiles>
-        <!-- Unfortunately, com.github.javaparser does not support native 
-            images OOTB -->
         <profile>
             <id>native</id>
             <activation>
