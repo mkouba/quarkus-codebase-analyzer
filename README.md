@@ -16,3 +16,7 @@ NOTE: Run `java -jar target/quarkus-app/quarkus-run.jar --help` to display the h
 ## Generate the Report for Specific Tags
 
 If you need to analyze a specific set of tags, you can use the `--tags` option, e.g. `java -jar target/quarkus-app/quarkus-run.jar --tags "2.0.0.Final,2.1.1.Final"`.
+
+## Sample Report
+
+A sample report is available at: https://mkouba.github.io/quarkus-codebase-analyzer/samples/sample-report
