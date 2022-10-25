@@ -6,8 +6,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,10 +19,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
@@ -78,6 +86,9 @@ public class Analyze implements Runnable {
             "--dump" }, description = "Dump the java sources found")
     boolean dump = false;
 
+    @Option(names = { "-t", "--threads" }, description = "The number of threads used to analyze the tags")
+    int threads = Runtime.getRuntime().availableProcessors();
+
     @Override
     public void run() {
         long start = System.nanoTime();
@@ -88,72 +99,143 @@ public class Analyze implements Runnable {
 
         LOG.infof("Working directory: %s", workDirExists ? workDir.toAbsolutePath() : workDir);
 
-        try {
-            if (clear || !workDirExists) {
-                // Delete if exists
-                if (workDirExists) {
+        List<Path> threadRepoDirs = new ArrayList<>(threads);
+
+        if (clear || !workDirExists) {
+            if (workDirExists) {
+                try {
                     Files.walk(workDir)
                             .sorted(Comparator.reverseOrder())
                             .map(Path::toFile)
                             .forEach(File::delete);
+                } catch (IOException e) {
+                    throw new IllegalStateException("Unable to clear the working dir: " + workDir, e);
                 }
-                // Clone the repo
-                String remoteRepoName = "https://github.com/" + organization + "/" + repository + ".git";
-                LOG.infof("Clone %s", remoteRepoName);
-                CloneCommand clone = Git.cloneRepository()
-                        .setURI(remoteRepoName)
-                        .setDirectory(repoDir.toFile());
-                long cloneStart = System.nanoTime();
+            }
+        }
+        String remoteRepoName = "https://github.com/" + organization + "/" + repository + ".git";
+
+        // We need a repo per each thread
+        Path zeroThreadRepoDir = repoDir.resolve("_0");
+        if (!Files.exists(zeroThreadRepoDir)) {
+            LOG.infof("Clone %s into %s", remoteRepoName, zeroThreadRepoDir);
+            CloneCommand clone = Git.cloneRepository()
+                    .setURI(remoteRepoName)
+                    .setDirectory(zeroThreadRepoDir.toFile());
+            long cloneStart = System.nanoTime();
+            try {
                 clone.call();
-                LOG.infof("Cloned into %s in %s s", repoDir.toAbsolutePath(),
-                        TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - cloneStart));
+            } catch (GitAPIException e) {
+                throw new IllegalStateException("Unable to clone the repo in: " + zeroThreadRepoDir, e);
             }
+            LOG.infof("Cloned into %s in %s s", repoDir.toAbsolutePath(),
+                    TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - cloneStart));
+        }
+        threadRepoDirs.add(zeroThreadRepoDir);
 
-            List<Result> results;
-            Git git = Git.open(repoDir.toFile());
-            List<Ref> foundTags = git.tagList().call();
-            LOG.infof("Found %s tags in the repository", foundTags.size());
-
-            results = new ArrayList<>();
-            List<String> tags = this.tags != null ? Arrays.asList(this.tags.split(",")) : Collections.emptyList();
-
-            if (tags.isEmpty()) {
-                LOG.infof("Going to analyze %s tags: %s", foundTags.size(),
-                        foundTags.stream().map(Ref::getName).map(Repository::shortenRefName).collect(Collectors.toList()));
-                for (Ref foundTag : foundTags) {
-                    results.add(analyze(repoDir, git, foundTag));
+        for (int i = 1; i < threads; i++) {
+            Path threadRepoDir = repoDir.resolve("_" + i);
+            threadRepoDirs.add(threadRepoDir);
+            if (!Files.exists(threadRepoDir)) {
+                LOG.infof("Copy clone from %s into %s", threadRepoDirs.get(0), threadRepoDir);
+                try (Stream<Path> files = Files.walk(zeroThreadRepoDir)) {
+                    files.forEach(source -> {
+                        if (!source.equals(zeroThreadRepoDir)) {
+                            Path dest = threadRepoDir.resolve(zeroThreadRepoDir.relativize(source));
+                            try {
+                                Files.createDirectories(dest);
+                                Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING,
+                                        StandardCopyOption.COPY_ATTRIBUTES, LinkOption.NOFOLLOW_LINKS);
+                            } catch (IOException e) {
+                                throw new IllegalStateException(e);
+                            }
+                        }
+                    });
+                } catch (IOException e1) {
+                    throw new IllegalStateException(e1);
                 }
-            } else {
-                for (String tag : tags) {
-                    LOG.infof("Going to analyze %s tags: %s", tags.size(), tags);
-                    Optional<Ref> foundTag = foundTags.stream()
-                            .filter(ref -> Repository.shortenRefName(ref.getName()).equals(tag))
-                            .findFirst();
-                    if (foundTag.isEmpty()) {
-                        throw new IllegalStateException("Tag not found: " + tag);
+            }
+        }
+
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+
+        // First find the tags
+        List<Ref> foundTags;
+        try {
+            foundTags = Git.open(threadRepoDirs.get(0).toFile()).tagList().call();
+        } catch (GitAPIException | IOException e) {
+            throw new IllegalStateException("Unable to get the tags from the repo: " + threadRepoDirs.get(0), e);
+        }
+        LOG.infof("Found %s tags in the repository", foundTags.size());
+        List<String> tags = this.tags != null ? Arrays.asList(this.tags.split(","))
+                : foundTags.stream().map(Ref::getName).map(Repository::shortenRefName).collect(Collectors.toList());
+        LOG.infof("Going to analyze %s tags: %s", tags.size(), tags);
+
+        List<Result> results = new CopyOnWriteArrayList<>();
+        BlockingQueue<String> tagsQueue = new ArrayBlockingQueue<>(tags.size(), false, tags);
+
+        for (int i = 0; i < threads; i++) {
+            Path threadRepoDir = threadRepoDirs.get(i);
+            executor.execute(new Runnable() {
+
+                @Override
+                public void run() {
+                    LOG.infof("Started thread worker for: %s", threadRepoDir);
+                    try {
+                        Git git = Git.open(threadRepoDir.toFile());
+                        String tag;
+                        while ((tag = tagsQueue.poll()) != null) {
+                            analyzeTag(tag, foundTags, results, threadRepoDir, git);
+                        }
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
                     }
-                    results.add(analyze(repoDir, git, foundTag.get()));
                 }
+            });
+        }
+
+        // Wait for the results...
+        // TODO add timeout
+        while (results.size() != tags.size()) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new IllegalStateException(e);
             }
+        }
 
-            // Sort the results
-            Collections.sort(results);
+        // Sort the results
+        Collections.sort(results);
 
-            // Render reports
+        // Render reports
+        try {
             if (!Files.exists(reportsDir)) {
                 Files.createDirectories(reportsDir);
             }
             Files.write(reportsDir.resolve("report.html"),
                     Templates.report(results).render().getBytes(StandardCharsets.UTF_8));
-
-            long total = System.nanoTime() - start;
-            LOG.infof("Analysis finished in %s",
-                    total < TimeUnit.MINUTES.toNanos(1) ? TimeUnit.NANOSECONDS.toSeconds(total) + " s"
-                            : TimeUnit.NANOSECONDS.toMinutes(total) + " min");
-
-        } catch (IOException | GitAPIException e) {
+        } catch (Exception e) {
             throw new IllegalStateException(e);
         }
+
+        long total = System.nanoTime() - start;
+        LOG.infof("Analysis finished in %s",
+                total < TimeUnit.MINUTES.toNanos(1) ? TimeUnit.NANOSECONDS.toSeconds(total) + " s"
+                        : TimeUnit.NANOSECONDS.toMinutes(total) + " min");
+
+        executor.shutdownNow();
+    }
+
+    private void analyzeTag(String tag, List<Ref> foundTags, List<Result> results, Path threadRepoDir, Git git)
+            throws RefAlreadyExistsException, RefNotFoundException, InvalidRefNameException, CheckoutConflictException,
+            GitAPIException, IOException {
+        Optional<Ref> foundTag = foundTags.stream()
+                .filter(ref -> Repository.shortenRefName(ref.getName()).equals(tag))
+                .findFirst();
+        if (foundTag.isEmpty()) {
+            throw new IllegalStateException("Tag not found: " + tag);
+        }
+        results.add(analyze(threadRepoDir, git, foundTag.get()));
     }
 
     private Result analyze(Path workDir, Git git, Ref tag) throws RefAlreadyExistsException, RefNotFoundException,
