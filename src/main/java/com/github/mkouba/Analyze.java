@@ -47,6 +47,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.AnnotationExpr;
@@ -60,11 +61,6 @@ import picocli.CommandLine.Option;
 public class Analyze implements Runnable {
 
     private static final Logger LOG = Logger.getLogger(Analyze.class);
-
-    private static Set<String> oldBuildItemNames = Set.of("org.jboss.builder.item.SimpleBuildItem",
-            "org.jboss.builder.item.MultiBuildItem");
-    private static Set<String> newBuildItemNames = Set.of("io.quarkus.builder.item.SimpleBuildItem",
-            "io.quarkus.builder.item.MultiBuildItem", "io.quarkus.builder.item.EmptyBuildItem");
 
     @Option(names = { "-c",
             "--clear" }, description = "Clear the working dir and clone the repo")
@@ -255,6 +251,7 @@ public class Analyze implements Runnable {
         AtomicInteger foundFiles = new AtomicInteger();
         LongAdder javaTypes = new LongAdder();
         LongAdder testJavaTypes = new LongAdder();
+        List<String> buildSteps = new ArrayList<>();
         List<String> buildItems = new ArrayList<>();
         List<String> configItems = new ArrayList<>();
 
@@ -272,6 +269,15 @@ public class Analyze implements Runnable {
                     return false;
                 })
                 .collect(Collectors.toList());
+
+        // Collect build items - a build item must be final and extend one of the abstract classes
+        Set<String> oldBuildItemNames = Set.of("org.jboss.builder.item.SimpleBuildItem",
+                "org.jboss.builder.item.MultiBuildItem");
+        Set<String> newBuildItemNames = Set.of("io.quarkus.builder.item.SimpleBuildItem",
+                "io.quarkus.builder.item.MultiBuildItem", "io.quarkus.builder.item.EmptyBuildItem");
+        Set<String> buildStepNames = Set.of("org.jboss.shamrock.annotations.BuildStep",
+                "org.jboss.shamrock.deployment.annotations.BuildStep",
+                "io.quarkus.deployment.annotations.BuildStep");
 
         // Parse and analyze java sources
         for (Path javaSource : javaSources) {
@@ -295,8 +301,6 @@ public class Analyze implements Runnable {
                 if (isTest) {
                     testJavaTypes.add(typesFound);
                 }
-
-                // Collect build items - a build item must be final and extend one of the abstract classes
                 unit.findAll(ClassOrInterfaceDeclaration.class).stream()
                         .filter(c -> {
                             return c.isFinal() && c.getExtendedTypes().stream().anyMatch(e -> {
@@ -349,6 +353,33 @@ public class Analyze implements Runnable {
                             }
                         });
 
+                // Collect build steps
+                unit.findAll(MethodDeclaration.class).stream()
+                        .filter(f -> {
+                            if (f.isStatic() || f.isAbstract()) {
+                                return false;
+                            }
+                            NodeList<AnnotationExpr> annotations = f.getAnnotations();
+                            if (annotations.isEmpty()) {
+                                return false;
+                            }
+                            for (AnnotationExpr annotation : annotations) {
+                                String name = annotation.getNameAsString();
+                                if (buildStepNames.contains(name)) {
+                                    return true;
+                                }
+                                if (name.equals("BuildStep")) {
+                                    // Check imports
+                                    String importName = imports.get("BuildStep");
+                                    return importName != null && buildStepNames.contains(importName);
+                                }
+                            }
+                            return false;
+                        })
+                        .forEach(
+                                m -> buildSteps
+                                        .add(javaSource.getFileName() + ": " + m.getDeclarationAsString(false, false, true)));
+
             } catch (ParseProblemException e) {
                 // Quarkus contains a lot of java source templates
                 LOG.warnf("Unable to parse: " + javaSource);
@@ -356,6 +387,7 @@ public class Analyze implements Runnable {
         }
 
         result.setBuildItems(buildItems.size());
+        result.setBuildSteps(buildSteps.size());
         result.setConfigItems(configItems.size());
         result.setJavaSourceFiles(javaSources.size());
         result.setJavaTypes(javaTypes.sum());
@@ -363,14 +395,15 @@ public class Analyze implements Runnable {
         result.setTestTypes(testJavaTypes.sum());
 
         LOG.infof(
-                "%s analyzed in %s s:\n\t- %s files\n\t- %s java source files\n\t- %s java types\n\t- %s build items\n\t- %s config items",
+                "%s analyzed in %s s:\n\t- %s files\n\t- %s java source files\n\t- %s java types\n\t- %s build items\n\t- %s config items\n\t- %s build steps",
                 result.getTagName(),
                 TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - analyzeStart),
                 foundFiles.get(),
                 javaSources.size(),
                 javaTypes.sum(),
                 buildItems.size(),
-                configItems.size());
+                configItems.size(),
+                buildSteps.size());
 
         if (dump) {
             LOG.infof("Java sources found:\n- %s", javaSources.stream().map(p -> {

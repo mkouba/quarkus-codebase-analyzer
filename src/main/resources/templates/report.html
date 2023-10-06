@@ -107,6 +107,34 @@
     });
 </script>
 
+<h2>Build Steps</h2>
+<canvas id="chart-build-steps"></canvas>
+<script>
+    const buildStepsCtx = document.getElementById('chart-build-steps').getContext('2d');
+    const buildStepsLabels = [{#each results}'{it.tagName}', {/each}];
+    const buildStepsData = [{#each results}{it.buildSteps}, {/each}];
+    const buildStepsChart = new Chart(buildStepsCtx, {
+        type: 'bar',
+        data: {
+            labels: buildStepsLabels,
+            datasets: [{
+                label: '# of build steps',
+                data: buildStepsData,
+                backgroundColor: "#0047AB",
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
+</script>
+
 <h2>Config Items</h2>
 <canvas id="chart-config-items"></canvas>
 <script>

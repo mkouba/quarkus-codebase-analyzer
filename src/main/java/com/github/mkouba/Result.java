@@ -12,6 +12,7 @@ public class Result implements Comparable<Result> {
     private long testSourceFiles;
     private long testTypes;
     private long buildItems;
+    private long buildSteps;
     private long configItems;
 
     public Ref getTag() {
@@ -80,6 +81,14 @@ public class Result implements Comparable<Result> {
         this.buildItems = buildItems;
     }
     
+    public long getBuildSteps() {
+        return buildSteps;
+    }
+
+    public void setBuildSteps(long buildSteps) {
+        this.buildSteps = buildSteps;
+    }
+
     public long getConfigItems() {
         return configItems;
     }
